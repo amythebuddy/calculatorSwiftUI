@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var calculation = 0
     @State private var firstNum = ""
     @State private var secondNum = ""
+    @State private var isDecimal = false
     @State private var isFirstDigit = true
     @State private var isFirstDigit2 = true
     @State private var isSecondNum = false
@@ -58,7 +59,9 @@ struct ContentView: View {
                                             .foregroundColor(.black)
                                             .font(.system(size: 35))
                                     } else if char == "0" {
-                                        Button(char, action: {})
+                                        Button(char, action: {
+                                            showNumber(value: char)
+                                        })
                                             .padding(.leading, 30)
                                             .frame(width: 170, height: 80, alignment: .leading)
                                             .background(Color(UIColor.darkGray))
@@ -110,40 +113,40 @@ struct ContentView: View {
         }
     func calculate() {
         if result.contains("."){
-            
+            guard let firstNumValue = Double(firstNum), let secondNumValue = Double(secondNum) else {
+                // Handle the case where conversion fails
+                print("Invalid input for calculation")
+                return
+            }
         } else {
             guard let firstNumValue = Int(firstNum), let secondNumValue = Int(secondNum) else {
                 // Handle the case where conversion fails
                 print("Invalid input for calculation")
                 return
             }
-            print(firstNumValue)
-            print(secondNumValue)
             switch operation {
             case "+":
                 calculation = firstNumValue + secondNumValue
-                print(calculation)
             case "-":
                 calculation = firstNumValue - secondNumValue
             case "x":
                 calculation = firstNumValue * secondNumValue
             case "÷":
-                if  secondNumValue != 0 {
+                if secondNumValue != 0 {
                     calculation = firstNumValue / secondNumValue
                 } else {
                     result = "Error"
                 }
-            case "=":
-                result = String(calculation)
-                print(result)
-                firstNum = ""
-                secondNum = ""
-                isSecondNum = false
-                isFirstDigit = true
-                isFirstDigit2 = true
             default:
-                print("error")
+                print("Unexpected")
+                return
             }
+            result = String(calculation)
+            firstNum = result
+            secondNum = ""
+            isSecondNum = false
+            isFirstDigit = true
+            isFirstDigit2 = true
         }
     }
     func functionality(operation: String) {
