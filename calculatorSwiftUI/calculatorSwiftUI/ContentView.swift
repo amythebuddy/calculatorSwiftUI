@@ -25,6 +25,7 @@ struct ContentView: View {
     @State private var isFirstDigit = true
     @State private var isFirstDigit2 = true
     @State private var isSecondNum = false
+    @State private var isDecimal = false
     var body: some View {
         Color.black
             .ignoresSafeArea()
@@ -33,7 +34,7 @@ struct ContentView: View {
                     Spacer()
                     Text(String(result))
                         .foregroundColor(.white)
-                        .font(.system(size: 70))
+                        .font(.system(size: result.count > 8 ? 60 : 72)) // if result has more than 8 digits, decrease the size from 75 to 68
                         .fontWeight(.light)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -54,7 +55,7 @@ struct ContentView: View {
                                             .cornerRadius(100)
                                             .foregroundColor(isClicked == char && isOperator ? .orange : .white) // if the isClicked is these characters and in the isOperator, change background to orange, else white
                                             .font(.system(size: 35))
-                                    } else if char == "AC" || char == "+/-" || char == "%" {
+                                    } else if char == "AC" || char == "C" || char == "+/-" || char == "%" {
                                         Button(char, action: {
                                             functionality(operation: char)
                                             isClicked = nil})
@@ -92,30 +93,86 @@ struct ContentView: View {
         )
     }
     func showNumber(value: String) {
+        if result.count > 10 { // if result has more than 8 digits
+            result = String(result.prefix(10)) //only contains the first 8 digits
+        }
         if isFirstDigit { // if it's first digit, change the 0
-            result = value
+            if value == "." && firstNum.contains("."){ //only allow 1 decimal point
+                return
+            }
+            if value == "." { // if the user press the . first, then keep the 0 and add decimal
+                result += "."
+            } else {
+                result = value
+            }
         } else if isSecondNum { // else if after the user click the operation, the secondNum will activate
             if isFirstDigit2 { // if it is the first digit for the 2nd number
-                result = value // result is the first digit
+                if value == "." && secondNum.contains(".") { // only allow 1 decimal point
+                    // Ignore subsequent decimal points
+                    return
+                }
+                if value == "." { // if the user press the . first, then add 0 and decimal
+                    result = "0."
+                } else {
+                    result = value
+                } // result is the first digit
             } else { // else result append to the other value
+                if value == "." && secondNum.contains(".") { // only allow 1 decimal point
+                    // Ignore subsequent decimal points
+                    return
+                }
                 result += value
             }
-            secondNum = result
+            secondNum = result // assign result to the second number
             isFirstDigit2 = false
         } else { // else keep adding to the firstNum
+            if value == "." && firstNum.contains(".") { // only allow 1 decimal point
+                // Ignore subsequent decimal points
+                return
+            }
             result += value
-            firstNum = result
-            print(firstNum)
+            firstNum = result // assign result to firstNum
         }
         isFirstDigit = false
+        
+        // Insert commas for every three digits
+        if let formattedNumber = formatNumber(result) {
+            result = formattedNumber
+        }
+        // Check if the user has entered a digit and update "AC" to "C"
+        if !result.isEmpty && result != "0" {
+            numsAndOperations[0][0] = "C"
+        }
+    }
+    
+    // a function to add comma
+    func formatNumber(_ numberString: String) -> String? {
+        var formattedNumber = ""
+        var count = 0
+        
+        for char in numberString.reversed() { // for each character
+            if char == "."{
+                isDecimal = true
+            }
+            if char != "," { // if character is not a comma
+                if count != 0 && count % 3 == 0 && !isDecimal{ // if count is not 0 to not add comma to the first digit and count is divisible by 3
+                    formattedNumber.insert(",", at: formattedNumber.startIndex) // add a comma
+                    print(formattedNumber)
+                }
+                formattedNumber.insert(char, at: formattedNumber.startIndex)
+                count += 1 // add 1 to count for each digit
+                print(formattedNumber)
+            }
+        }
+        return String(formattedNumber)
     }
     func operationCalc(_ char: String) {
       switch char {
           case "+", "-", "x", "÷":
-              operation = char
-              firstNum = result
-          default:
-              secondNum = result
+              operation = char // assign operation with +, -, x, ÷
+              firstNum = result.replacingOccurrences(of: ",", with: "") // eliminate the commas for calculation
+          default: // for = button
+              secondNum = result.replacingOccurrences(of: ",", with: "") // eliminate the commas for calculation
               calculate()
       }
     }
@@ -144,8 +201,10 @@ struct ContentView: View {
                 print("Unexpected")
                 return
             }
-            print(result)
-            result = String(calculationForDouble)
+            // Insert commas for every three digits
+            if let formattedNumber = formatNumber(String(calculationForDouble)) {
+                result = formattedNumber
+            }
         } else {
             guard let firstNumInt = Int(firstNum), let secondNumInt = Int(secondNum) else {
                 // Handle the case where conversion fails
@@ -161,7 +220,15 @@ struct ContentView: View {
                 calculationForInt = firstNumInt * secondNumInt
             case "÷":
                 if secondNumInt != 0 {
-                    calculationForInt = firstNumInt / secondNumInt
+                    calculationForDouble = Double(firstNumInt) / Double(secondNumInt)
+                    if let formattedNumber = formatNumber(String(calculationForDouble)) {
+                        result = formattedNumber
+                    }
+                    isSecondNum = true
+                    firstNum = result
+                    secondNum = ""
+                    isFirstDigit2 = true
+                    return
                 } else {
                     result = "Error"
                     return
@@ -171,11 +238,10 @@ struct ContentView: View {
                 print("Unexpected")
                 return
             }
-            result = String(calculationForInt)
-            print(result)
+            if let formattedNumber = formatNumber(String(calculationForInt)) {
+                result = formattedNumber
+            }
         }
-        print(firstNum)
-        print(secondNum)
         isSecondNum = true
         firstNum = result
         secondNum = ""
@@ -183,8 +249,9 @@ struct ContentView: View {
     }
     func functionality(operation: String) {
         switch operation {
-            case "AC":
+            case "AC", "C": // reset everything back
                 isSecondNum = false
+                isDecimal = false
                 result = "0"
                 firstNum = ""
                 secondNum = ""
@@ -192,10 +259,11 @@ struct ContentView: View {
                 calculationForDouble = 0.0
                 isFirstDigit = true
                 isFirstDigit2 = true
+                numsAndOperations[0][0] = "AC" // clicking C, change it back to AC
             case "+/-":
-                if result.first == "-" {
+                if result.first == "-" { // if result already had the - then remove it
                     result.removeFirst()
-                } else {
+                } else { // else add the - to the beginning
                     result.insert("-", at: result.startIndex)
                 }
             case "%":
