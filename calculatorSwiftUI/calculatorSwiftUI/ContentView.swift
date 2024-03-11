@@ -150,18 +150,16 @@ struct ContentView: View {
         var formattedNumber = ""
         var count = 0
         
-        for char in numberString.reversed() { // for each character
+        for char in numberString.reversed() { // for each character from right to left
             if char == "."{
                 isDecimal = true
             }
             if char != "," { // if character is not a comma
                 if count != 0 && count % 3 == 0 && !isDecimal{ // if count is not 0 to not add comma to the first digit and count is divisible by 3
                     formattedNumber.insert(",", at: formattedNumber.startIndex) // add a comma
-                    print(formattedNumber)
                 }
                 formattedNumber.insert(char, at: formattedNumber.startIndex)
                 count += 1 // add 1 to count for each digit
-                print(formattedNumber)
             }
         }
         return String(formattedNumber)
@@ -177,7 +175,7 @@ struct ContentView: View {
       }
     }
     func calculate() {
-        if firstNum.contains(".") || secondNum.contains("."){
+        if firstNum.contains(".") || secondNum.contains("."){ //if the first number or second number is a decimal then treat it as double
             guard let firstNumDouble = Double(firstNum), let secondNumDouble = Double(secondNum) else {
                 // Handle the case where conversion fails
                 print("Invalid input for calculation double")
@@ -195,7 +193,7 @@ struct ContentView: View {
                     calculationForDouble = firstNumDouble / secondNumDouble
                 } else {
                     result = "Error"
-                    return
+                    return // stop after displaying Error
                 }
             default:
                 print("Unexpected")
@@ -203,7 +201,7 @@ struct ContentView: View {
             }
             // Insert commas for every three digits
             if let formattedNumber = formatNumber(String(calculationForDouble)) {
-                result = formattedNumber
+                result = formattedNumber // display the result with commas
             }
         } else {
             guard let firstNumInt = Int(firstNum), let secondNumInt = Int(secondNum) else {
@@ -220,10 +218,11 @@ struct ContentView: View {
                 calculationForInt = firstNumInt * secondNumInt
             case "÷":
                 if secondNumInt != 0 {
-                    calculationForDouble = Double(firstNumInt) / Double(secondNumInt)
+                    calculationForDouble = Double(firstNumInt) / Double(secondNumInt) // dividing convert all numbers to double
                     if let formattedNumber = formatNumber(String(calculationForDouble)) {
-                        result = formattedNumber
+                        result = formattedNumber // display the result with commas
                     }
+                    //reset everything back
                     isSecondNum = true
                     firstNum = result
                     secondNum = ""
@@ -239,7 +238,7 @@ struct ContentView: View {
                 return
             }
             if let formattedNumber = formatNumber(String(calculationForInt)) {
-                result = formattedNumber
+                result = formattedNumber // display the result with commas
             }
         }
         isSecondNum = true
